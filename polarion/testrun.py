@@ -53,7 +53,9 @@ class Testrun(Comments):
                     new_record = Record(self._polarion, self, r, index)
                     self.records.append(new_record)
                     if new_record.testcase_id not in self._record_dict:
-                        self._record_dict[new_record.testcase_id] = new_record
+                        self._record_dict[new_record.testcase_id] = [new_record]
+                    else:
+                        self._record_dict[new_record.testcase_id].append(new_record)
 
         else:
             raise Exception(f'Testrun not retrieved from Polarion')
@@ -68,6 +70,7 @@ class Testrun(Comments):
         """
         Checks if the the specified test case id is in the records.
 
+        :param id: The test case id
         :return: True/False
         :rtype: boolean
         """
@@ -75,15 +78,19 @@ class Testrun(Comments):
             return True
         return False
 
-    def getTestCase(self, id):
+    def getTestCase(self, id, iteration : int = 0):
         """
         Get the specified test case record from the test run records
 
-        :return: Specified record fi ti exists
+        :param id: The test case id
+        :param iteration: The test case iteration
+        :return: Specified record if it exists
         :rtype: Record
         """
+        if iteration < 0:
+            raise Exception('Test case iteration must be positive.')
         if self.hasTestCase(id):
-            return self._record_dict[id]
+            return self._record_dict[id][iteration]
         return None
 
     def hasAttachment(self):
