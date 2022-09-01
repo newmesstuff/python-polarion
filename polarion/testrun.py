@@ -153,13 +153,36 @@ class Testrun(Comments):
             service.addAttachmentToTestRun(self.uri, file_name, title, file_content.read())
         self._reloadFromPolarion()
 
-    def addTestcase(self, workitem):
+    def addTestcase(self, workitem, test_parameters : list = []):
         """
         Add a workitem to the test run. A test case cannot be added to a template.
         :param workitem: Workitem object
+        :param test_parameters: List of parameter objects
         """
         service = self._polarion.getService('TestManagement')
-        new_record = self._polarion.TestRecordType(testCaseURI=workitem.uri)
+
+        # Convert provided test parameters list
+        test_parameters_dict = dict([(test_parameter['name'], test_parameter['value']) for test_parameter in test_parameters])
+        
+        # Get test parameter of test case
+        test_case_parameter_names = service.getTestCaseParameterNames(workitem.uri)
+
+        # Add test parameters to test record if they are part of the test case
+        test_parameters_list = []
+        for test_case_parameter_name in test_case_parameter_names:
+            if test_case_parameter_name in test_parameters_dict.keys():
+                test_parameters_list.append(self._polarion.ParameterType(test_case_parameter_name, test_parameters_dict['test_case_parameter_name']))
+            else:
+                test_parameters_list.append(self._polarion.ParameterType(test_case_parameter_name, 'not specified'))
+
+        # Add URI and if availabe revision to test record
+        testCaseUriAndRevision = workitem.uri.split('%')
+        if len(testCaseUriAndRevision) > 1:
+            new_record = self._polarion.TestRecordType(testCaseURI=testCaseUriAndRevision[0], testCaseRevision=testCaseUriAndRevision[1], testParameters=test_parameters_list)
+        else:            
+            new_record = self._polarion.TestRecordType(testCaseURI=testCaseUriAndRevision[0], testParameters=test_parameters_list)
+
+        # Add test record to test run and reload item
         service.addTestRecordToTestRun(self.uri, new_record)
         self._reloadFromPolarion()
 
